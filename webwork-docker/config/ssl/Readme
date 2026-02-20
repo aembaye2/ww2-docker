@@ -1,0 +1,10 @@
+This directory stores TLS files used by nginx.
+
+With the current Docker setup, Let's Encrypt automation writes certificate data here.
+Expected active files used by nginx:
+
+- fullchain.pem
+- privkey.pem
+
+On first start, nginx may create a short-lived self-signed certificate until
+Let's Encrypt issuance succeeds.

@@ -1,0 +1,97 @@
+services:
+  db:
+    container_name: ${WEBWORK_DB_CONTAINER}
+    build:
+      dockerfile: mariadb.Dockerfile
+      args:
+      - DB_VERSION=${MARIADB_VERSION}
+    volumes:
+      - webwork2_mysql:/var/lib/mysql
+    restart: always
+    environment:
+      # When the MariaDB container is first started it will set a random root password,
+      # which you can find in the container logs.
+      MARIADB_RANDOM_ROOT_PASSWORD: 1
+      # When the MariaDB container is first started it will create
+      # the webwork database and webwork DB user based on:
+      MYSQL_DATABASE: ${WEBWORK_DB_NAME}
+      MYSQL_USER: ${WEBWORK_DB_USER}
+      MYSQL_PASSWORD: ${WEBWORK_DB_PASSWORD}
+
+  app:
+    # Set a fixed container name, so it does not depend on the directory name
+    container_name: ${WEBWORK_APP_CONTAINER}
+    env_file:
+      - .env
+    build:
+      context: .
+      args:
+      - OPL=${OPL_PATH}
+      - ADDITIONAL_BASE_IMAGE_PACKAGES=${ADD_BASE_PACKAGES}
+    depends_on:
+      - db
+      - r
+    volumes:
+      - webwork2_courses:${APP_ROOT}/courses
+      - webwork2_htdocs:${WEBWORK_ROOT}/htdocs
+      - webwork2_conf:${WEBWORK_ROOT}/conf
+      - pg_htdocs:${PG_ROOT}/htdocs
+
+    hostname: ${WEBWORK_HOSTNAME}
+    environment:
+      MOJO_REVERSE_PROXY: 1
+    ports:
+      - ${WEBWORK_HOST_IP}${WEBWORK_HOST_PORT}:8080
+    restart: $RESTART
+    stop_signal: SIGWINCH
+    stop_grace_period: 30s
+
+  nginx:
+    container_name: ${WEBWORK_NGINX_CONTAINER:-webwork2_nginx_1}
+    image: nginx:1.27-alpine
+    depends_on:
+      - app
+    env_file:
+      - .env
+    ports:
+      - ${NGINX_HTTP_PORT}:80
+      - ${NGINX_HTTPS_PORT}:443
+    volumes:
+      - ./config/nginx/default.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ./config/nginx/start-nginx.sh:/usr/local/bin/start-nginx.sh:ro
+      - ./config/ssl:/etc/ssl/local
+      - letsencrypt_www:/var/www/certbot
+    command: ["/bin/sh", "/usr/local/bin/start-nginx.sh"]
+    restart: $RESTART
+
+  certbot:
+    container_name: ${WEBWORK_CERTBOT_CONTAINER:-webwork2_certbot_1}
+    image: certbot/certbot:latest
+    depends_on:
+      - nginx
+    env_file:
+      - .env
+    volumes:
+      - ./config/nginx/certbot-loop.sh:/usr/local/bin/certbot-loop.sh:ro
+      - ./config/ssl:/etc/ssl/local
+      - letsencrypt_www:/var/www/certbot
+    command: ["/bin/sh", "/usr/local/bin/certbot-loop.sh"]
+    restart: $RESTART
+
+  r:
+    container_name: rserve
+    build:
+      dockerfile: ./rserve.Dockerfile
+      args:
+      - ADDITIONAL_R_PACKAGES=${ADD_R_PACKAGES}
+    volumes:
+    - rserve_data:/localdata
+
+volumes:
+  webwork2_mysql:
+  webwork2_courses:
+  webwork2_htdocs:
+  webwork2_conf:
+  pg_htdocs:
+  rserve_data:
+  letsencrypt_www:

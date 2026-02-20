@@ -1,0 +1,23 @@
+.DS_Store
+.env
+*~
+*.swp
+*.save
+*.bak
+tmp/*
+logs/*
+
+.vscode
+.vim
+webwork2
+pg
+opl
+webwork-open-problem-library
+OPL_data
+
+# Generated TLS certs and Let's Encrypt state
+config/ssl/fullchain.pem
+config/ssl/privkey.pem
+config/ssl/letsencrypt/
+config/ssl/work/
+config/ssl/log/
