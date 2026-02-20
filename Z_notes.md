@@ -7,8 +7,8 @@ git push
 If this is the first push for the branch, use:
 
 git push -u origin main
-If no remote is set yet, add it first (replace with your repo URL), then push:
 
-git remote add origin https://github.com/<owner>/<repo>.git
+# If no remote is set yet, add it first (replace with your repo URL), then push:
+
+git remote add origin https://github.com/aembaye2/ww2-docker.git
 git push -u origin main
-Want me to also give the exact ssh version of the remote command (git@github.com:...) for your setup?
